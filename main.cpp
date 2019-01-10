@@ -16,23 +16,29 @@ int randomindex;
 
 
 /* AI parameters */
-int population = 1000;
-int podio = 100;
-int hiddenLayers = 2;   // Quando metti più di 2 da segmentation fault :(
+int population = 100;
+int podio = 4;
+int hiddenLayers = 1;   // Quando metti più di 2 da segmentation fault :(
 int neuronsPerLayer = 100;
-float mutationFactor = 0.01;
-float replaceFactor = 0.0001;
-float mutationsize = 0.1;
+float sumFactor = 0.05;
+float sumsize = 0.3;
+float replaceFactor = 0.01;
+float mulFactor = 0.05;
+float mulsize = 0.2;
 /***/
 
 Snake *gsnake;
 int gridSize = 10;
-int maxHunger = 75;
+int maxHunger = 100;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
-bool pacman = true;
+bool pacman = false;
 int gameMillis = 100;
 int snakeDir = DIR_RIGHT;
+
+
+Evolution *evo;
+genome_t bestGenome;
 
 /* Initialize OpenGL Graphics */
 void initGL() {
@@ -63,6 +69,9 @@ void drawGrid(int size) {
 }
 
 void drawSquare(int _gridSize, int _x, int _y, float cr, float cg, float cb) {
+    if(_x<0 || _x>=_gridSize || _y<0 || _y>=_gridSize)
+        return;
+    
     float dimension = 2.0/_gridSize;
     float x = 2*((float)_x)/_gridSize - 1;
     float y = 2*(-(float)_y)/_gridSize + 1;
@@ -81,9 +90,11 @@ void display() {
     int sx, sy;
 
     if(gsnake != NULL) {
-        for(int i=0;i<gsnake->getSnakeSize();i++) {
+        gsnake->getSnakeCoordinate(0, &sx, &sy);
+        drawSquare(gridSize, sx, sy, 1, 0.75, 1);
+        for(int i=1;i<gsnake->getSnakeSize();i++) {
             gsnake->getSnakeCoordinate(i, &sx, &sy);
-            drawSquare(gridSize, sx, sy, 1, 0, 0);
+            drawSquare(gridSize, sx, sy, 0.5, 0.5, 0.5);
         }
 
         gsnake->getCookieCoordinate(&sx, &sy);
@@ -158,19 +169,35 @@ float brainPlay(Brain *b, int us, bool graphics) {
 
     float inputs[gridSize*gridSize+1], outputs[4];
     float grid[gridSize][gridSize];
+    int stepcount = 0;
+
+    float currentmindist = MAXFLOAT;
+    int sizeold = 2;
 
     while(s->isAlive()) {
         memset(grid, 0, gridSize*gridSize*sizeof(float));
+        grid[s->cookiex][s->cookiey] = 1;
         for(int i=1;i<s->snakeSize;i++) {   // Corpo -0.5
             grid[s->snakex[i]][s->snakey[i]] = -0.5;
         }
         grid[s->snakex[0]][s->snakey[0]] = -1;  // Testa
-        grid[s->cookiex][s->cookiey] = 1;
+        
         memcpy(inputs, grid, gridSize*gridSize*sizeof(float));
         inputs[gridSize*gridSize] = s->getDirection()/2.0-1;
 
         b->compute(inputs, outputs);
-       
+
+        if(s->getSnakeSize() > sizeold) {
+            sizeold = s->getSnakeSize();
+            currentmindist = MAXFLOAT;
+        }
+
+        float cdist = sqrt((s->cookiex - s->snakex[0])*(s->cookiex - s->snakex[0]) + (s->cookiey - s->snakey[0])*(s->cookiey - s->snakey[0]));
+        
+        if(cdist < currentmindist) {
+            currentmindist = cdist;
+        }
+
         if(outputs[0] > outputs[1] && outputs[0] > outputs[2] && outputs[0] > outputs[3]) { // DOWN
             if(s->getDirection() != DIR_UP)
                 s->step(DIR_DOWN);
@@ -193,21 +220,22 @@ float brainPlay(Brain *b, int us, bool graphics) {
                 s->step(DIR_SAME);
         }else {
             s->step(DIR_SAME);
-            printf("Occhio net strana\n");
+            //printf("Occhio net strana\n");
         }
-        
+
         if(us != 0)
             usleep(us*1000);
+        stepcount ++;
     }
 
-    float fitness = s->snakeSize-2;
+    float gridDiag = sqrt(gridSize*gridSize + gridSize*gridSize);
+    float fitness = s->snakeSize-2 + (gridDiag-currentmindist)/gridDiag;
 
 
     return fitness;
 }
 
 void mainThread() {
-    Evolution *evo = new Evolution(population, gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
     int generation = 1;
     while(1) {
         for(int bi=0;bi<population;bi++) {
@@ -217,13 +245,25 @@ void mainThread() {
 
             evo->setResult(bi, fitness);
         }
-        printf("Generation %i: %f\n", generation, evo->results[evo->getBestBrainIndex()]);
-        if(displayBest)
-            brainPlay(evo->getBrain(evo->getBestBrainIndex()), 100, true);
 
-
-        evo->evolve(podio, mutationFactor, replaceFactor, mutationsize);
+        float mean = 0;
+        for(int i=0;i<population;i++) {
+            mean += evo->results[i]/population;
+        }
+        bestGenome = evo->getBrain(evo->getBestBrainIndex())->getGenome();
+        float podfit = evo->evolve(podio, sumFactor, mulFactor, replaceFactor, sumsize, mulsize);
+        printf("Generation %i: %f, %.10f, %.10f\n", generation, evo->results[evo->getBestBrainIndex()], podfit, mean);
         generation ++;
+    }
+}
+
+void gameThread() {
+    while(1) {
+        if(bestGenome.genome != NULL) {
+            Brain *b = new Brain(gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
+            b->setGenome(bestGenome);
+            brainPlay(b, 100, true);
+        }
     }
 }
 
@@ -236,6 +276,8 @@ int main(int argc, char** argv) {
     for(int i=0;i<RANDOMLIST_SIZE;i++) {
         randomlist[i] = random()%gridSize;
     }
+
+    evo = new Evolution(population, gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
 
     glutInit(&argc, argv);          // Initialize GLUT
     glutInitWindowSize(640, 480);   // Set the window's initial width & height - non-square
@@ -256,6 +298,8 @@ int main(int argc, char** argv) {
     gsnake->setPacman(true);
     */
     std::thread thr(mainThread);
+    std::thread thr2(gameThread);
+    
 
 
     glutMainLoop();                 // Enter the infinite event-processing loop

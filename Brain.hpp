@@ -15,6 +15,7 @@ class Brain {
         float *inputWeights;   //Array dimensioni inputSize x neuronsPerLayer
         float *outputWeights;  //Array dimensioni neuronsPerLayer x outputSize
         float *layerWeights;   //Array dimensioni hiddenLayers-1 x neuronsPerLayer x neuronsPerLayer
+        float *biases;         //Array dimensioni hiddenLayers x neuronsPerLayer
     public:
         Brain(int inputSize, int outputSize, int hiddenLayers, int neuronsPerLayer);
         ~Brain();
