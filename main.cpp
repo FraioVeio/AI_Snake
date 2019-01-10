@@ -18,16 +18,16 @@ int randomindex;
 /* AI parameters */
 int population = 1000;
 int podio = 100;
-int hiddenLayers = 2;
+int hiddenLayers = 2;   // Quando metti più di 2 da segmentation fault :(
 int neuronsPerLayer = 100;
 float mutationFactor = 0.01;
-float replaceFactor = 0.005;
+float replaceFactor = 0.0001;
 float mutationsize = 0.1;
 /***/
 
 Snake *gsnake;
 int gridSize = 10;
-int maxHunger = 40;
+int maxHunger = 75;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
 bool pacman = true;
