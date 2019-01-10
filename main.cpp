@@ -3,24 +3,34 @@
 #include <thread>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 
 #include "Snake.hpp"
 #include "Evolution.hpp"
 
 
+#define RANDOMLIST_SIZE 3000
+
+int *randomlist;
+int randomindex;
+
+
 /* AI parameters */
 int population = 1000;
-int podio = 50;
-int hiddenLayers = 1;
-int neuronsPerLayer = 50;
-float mutationFactor = 0.1;
+int podio = 100;
+int hiddenLayers = 2;
+int neuronsPerLayer = 100;
+float mutationFactor = 0.01;
+float replaceFactor = 0.005;
+float mutationsize = 0.1;
 /***/
 
 Snake *gsnake;
 int gridSize = 10;
-int maxHunger = 30;
+int maxHunger = 40;
 int refreshMills = 30; // refresh interval in milliseconds
-bool displayBest = true;
+bool displayBest = false;
+bool pacman = true;
 int gameMillis = 100;
 int snakeDir = DIR_RIGHT;
 
@@ -113,8 +123,13 @@ void Timer(int value) {
 
 /* Callback handler for normal-key event */
 void keyboard(unsigned char key, int x, int y) {
-    if(key == 'd')
+    if(key == 'd') {
         displayBest = !displayBest;
+        if(displayBest)
+            printf("Display best on\n");
+        else
+            printf("Display best off\n");
+    }
 }
  
 /* Callback handler for special-key event */
@@ -136,10 +151,10 @@ void specialKeys(int key, int x, int y) {
 }
 
 float brainPlay(Brain *b, int us, bool graphics) {
-    Snake *s = new Snake(gridSize, maxHunger);
+    Snake *s = new Snake(gridSize, maxHunger, randomlist, RANDOMLIST_SIZE);
     if(graphics)
         gsnake = s;
-    s->setPacman(true);
+    s->setPacman(pacman);
 
     float inputs[gridSize*gridSize+1], outputs[4];
     float grid[gridSize][gridSize];
@@ -207,7 +222,7 @@ void mainThread() {
             brainPlay(evo->getBrain(evo->getBestBrainIndex()), 100, true);
 
 
-        evo->evolve(podio, mutationFactor);
+        evo->evolve(podio, mutationFactor, replaceFactor, mutationsize);
         generation ++;
     }
 }
@@ -215,6 +230,13 @@ void mainThread() {
 /* Main function: GLUT runs as a console application starting at main() */
 int main(int argc, char** argv) {
     
+    randomlist = (int*) calloc(RANDOMLIST_SIZE, sizeof(int));
+    randomindex = 0;
+    srand (time(NULL));
+    for(int i=0;i<RANDOMLIST_SIZE;i++) {
+        randomlist[i] = random()%gridSize;
+    }
+
     glutInit(&argc, argv);          // Initialize GLUT
     glutInitWindowSize(640, 480);   // Set the window's initial width & height - non-square
     glutInitWindowPosition(50, 50); // Position the window's initial top-left corner

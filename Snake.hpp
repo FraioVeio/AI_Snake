@@ -7,6 +7,7 @@
 #define DIR_LEFT 3
 #define DIR_UP 4
 
+
 class Snake {
     private:
         int gridSize;
@@ -19,8 +20,9 @@ class Snake {
 
         void generateCookie();
         bool isColliding();
+        int getRandom();
     public:
-        Snake(int size, int maxHunger);
+        Snake(int size, int maxHunger, int *randomlist, int randomlistsize);
         ~Snake();
         void step(int direction);
         int getSnakeSize();
@@ -36,6 +38,9 @@ class Snake {
         int snakeSize;
         int cookiex;
         int cookiey;
+        int *randomlist;
+        int randomlistindex;
+        int randomlistsize;
 };
 
 #endif

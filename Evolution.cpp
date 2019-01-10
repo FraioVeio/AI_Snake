@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void Evolution::evolve(int podio, float mutationFactor) {
+void Evolution::evolve(int podio, float mutationFactor, float replaceFactor, float mutationsize) {
     int orderi[population];
     for(int i=0;i<population;i++) {
         orderi[i] = i;
@@ -27,19 +27,31 @@ void Evolution::evolve(int podio, float mutationFactor) {
     for(int i=0;i<podio;i++) {
         genomes[i] = brains[orderi[i]]->getGenome().genome;
     }
+    genome_t gs;
+    gs.genome = genomes[0];
+    gs.size = genomeSize;
+    brains[0]->setGenome(gs);
 
-    for(int i=0;i<population;i++) {
+    for(int i=1;i<population;i++) {
         float genome[genomeSize];
         for(int y=0;y<genomeSize;y++) {
-            float rf = ((float)random()/(float)RAND_MAX)*2-1;
+            genome[y] = genomes[podiocount++][y];
+            if(podiocount >= podio)
+                podiocount = 0;
+            /* +- mutation */
+            float rf = ((float)random()/(float)RAND_MAX)*2*mutationsize-mutationsize;
             if(rf < mutationFactor) {
-                genome[y] = ((float)random()/(float)RAND_MAX)*100-50;
-            } else {
-                genome[y] = genomes[podiocount++][y];
-                if(podiocount >= podio)
-                    podiocount = 0;
+                genome[y] += ((float)random()/(float)RAND_MAX)*100-50;
+            }
+
+            /* replace mutation */
+            rf = ((float)random()/(float)RAND_MAX)*2*mutationsize-mutationsize;
+            if(rf < replaceFactor) {
+                genome[y] += ((float)random()/(float)RAND_MAX)*100-50;
             }
         }
+        gs.genome = genome;
+        brains[i]->setGenome(gs);
     }
 }
 

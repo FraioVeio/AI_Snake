@@ -10,7 +10,7 @@ class Evolution {
     public:
         Evolution(int population, int inputs, int outputs, int hiddenLayers, int neuronsPerLayer);
         ~Evolution();
-        void evolve(int podio, float mutationFactor);
+        void evolve(int podio, float mutationFactor, float replaceFactor, float mutationsize);
         Brain *getBrain(int index);
         int getBestBrainIndex();
         void setResult(int index, float result);
