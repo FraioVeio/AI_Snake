@@ -1,8 +1,10 @@
 #include <GL/glut.h>  // GLUT, include glu.h and gl.h
 #include <stdio.h>
 #include <thread>
-#include "Snake.hpp"
 #include <unistd.h>
+
+#include "Snake.hpp"
+#include "Brain.hpp"
 
 Snake *s;
 int gridSize = 20;
@@ -131,6 +133,11 @@ void mainThread() {
 
 /* Main function: GLUT runs as a console application starting at main() */
 int main(int argc, char** argv) {
+    Brain *b = new Brain(100, 4, 2, 50);
+    genome_t genome = b->getGenome();
+    printf("%i\n", genome.size);
+
+    /*
     glutInit(&argc, argv);          // Initialize GLUT
     glutInitWindowSize(640, 480);   // Set the window's initial width & height - non-square
     glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
@@ -151,5 +158,6 @@ int main(int argc, char** argv) {
 
 
     glutMainLoop();                 // Enter the infinite event-processing loop
+    */
     return 0;
 }
