@@ -4,6 +4,10 @@
 #include <time.h>
 
 void Snake::step(int direction) {
+    hunger --;
+    if(hunger < 0)
+        alive = false;
+    
     if(alive) {
         int lastx = snakex[snakeDir-1];
         int lasty = snakey[snakeDir-1];
@@ -66,6 +70,7 @@ void Snake::step(int direction) {
             snakey[snakeSize] = lasty;
             
             snakeSize ++;
+            hunger = maxHunger;
 
             generateCookie();
         }
@@ -79,6 +84,7 @@ void Snake::step(int direction) {
 }
 
 void Snake::generateCookie() {
+    /*
     bool ok = false;
     int cx;
     int cy;
@@ -95,7 +101,10 @@ void Snake::generateCookie() {
     }
 
     cookiex = cx;
-    cookiey = cy;
+    cookiey = cy;*/
+
+    cookiex = getRandom();
+    cookiey = getRandom();
 }
 
 void Snake::setPacman(bool p) {
@@ -133,7 +142,15 @@ void Snake::getCookieCoordinate(int *x, int *y) {
     *y = cookiey;
 }
 
-Snake::Snake(int size) {
+int Snake::getRandom() {
+    int n = randomlist[randomlistindex++];
+    if(randomlistindex >= randomlistsize)
+        randomlistindex = 0;
+
+    return n;
+}
+
+Snake::Snake(int size, int maxHunger, int *randomlist, int randomlistsize) {
     gridSize = size;
 
     snakeMaxSize = gridSize * gridSize;
@@ -157,7 +174,13 @@ Snake::Snake(int size) {
     pacman = false;
 
     srand (time(NULL));
+    this->randomlist = randomlist;
+    this->randomlistsize = randomlistsize;
+    randomlistindex = 0;
     generateCookie();
+
+    hunger = maxHunger;
+    this->maxHunger = maxHunger;
 }
 
 Snake::~Snake() {

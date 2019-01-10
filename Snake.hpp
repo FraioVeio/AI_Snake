@@ -7,23 +7,22 @@
 #define DIR_LEFT 3
 #define DIR_UP 4
 
+
 class Snake {
     private:
         int gridSize;
-        int snakeSize;
         int snakeMaxSize;
-        int *snakex;
-        int *snakey;
         int snakeDir;
-        int cookiex;
-        int cookiey;
         bool alive;
         bool pacman;
-        
+        int hunger;
+        int maxHunger;
+
         void generateCookie();
         bool isColliding();
+        int getRandom();
     public:
-        Snake(int size);
+        Snake(int size, int maxHunger, int *randomlist, int randomlistsize);
         ~Snake();
         void step(int direction);
         int getSnakeSize();
@@ -32,6 +31,16 @@ class Snake {
         bool isAlive();
         int getDirection();
         void setPacman(bool p);
+
+
+        int *snakex;
+        int *snakey;
+        int snakeSize;
+        int cookiex;
+        int cookiey;
+        int *randomlist;
+        int randomlistindex;
+        int randomlistsize;
 };
 
 #endif
