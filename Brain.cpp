@@ -1,10 +1,54 @@
 #include "Brain.hpp"
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+#include <math.h>
 
 void Brain::compute(double *inputs, double *outputs) {
+    // hidden layers
+    double neuronValuesPrev[neuronsPerLayer];
+    double neuronValuesCurr[neuronsPerLayer];
     
+    double (*iw)[inputSize][neuronsPerLayer] = (double (*)[inputSize][neuronsPerLayer]) inputWeights;
+    double (*ow)[neuronsPerLayer][outputSize] = (double (*)[neuronsPerLayer][outputSize]) outputWeights;
+    double (*lw)[hiddenLayers-1][neuronsPerLayer][neuronsPerLayer] = (double (*)[hiddenLayers-1][neuronsPerLayer][neuronsPerLayer]) inputWeights;
+    
+
+    /* Compute first hidden layer */
+    memset(neuronValuesPrev, 0, neuronsPerLayer*sizeof(double));
+    for(int i=0;i<inputSize;i++) {
+        for(int h=0;h<neuronsPerLayer;h++) {
+            neuronValuesPrev[h] += inputs[i] * (*iw)[i][h];
+        }
+    }
+    for(int h=0;h<neuronsPerLayer;h++) {
+        neuronValuesPrev[h] = tanh(neuronValuesPrev[h]);
+    }
+
+    /* Compute layers */
+    for(int l=0;l<hiddenLayers-1;l++) {
+        memset(neuronValuesCurr, 0, neuronsPerLayer*sizeof(double));
+        for(int i1=0;i1<neuronsPerLayer;i1++) {
+            for(int i2=0;i2<neuronsPerLayer;i2++) {
+                neuronValuesCurr[i2] += neuronValuesPrev[i1] * (*lw)[l][i1][i2];
+            }
+        }
+        for(int i=0;i<neuronsPerLayer;i++) {
+            neuronValuesCurr[i] = tanh(neuronValuesPrev[i]);
+        }
+        memcpy(neuronValuesPrev, neuronValuesCurr, neuronsPerLayer*sizeof(double));
+    }
+
+    /* Compute output */
+    memset(outputs, 0, outputSize*sizeof(double));
+    for(int o=0;o<outputSize;o++) {
+        for(int i=0;i<neuronsPerLayer;i++) {
+            outputs[o] += neuronValuesPrev[i] * (*ow)[i][o];
+        }
+    }
+    for(int o=0;o<outputSize;o++) {
+        outputs[o] = tanh(outputs[o]);
+    }
+
 }
 
 genome_t Brain::getGenome() {

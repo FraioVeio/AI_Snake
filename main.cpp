@@ -135,7 +135,8 @@ void mainThread() {
 int main(int argc, char** argv) {
     Brain *b = new Brain(100, 4, 2, 50);
     genome_t genome = b->getGenome();
-    printf("%i\n", genome.size);
+    double in[100], out[4];
+    b->compute(in, out);
 
     /*
     glutInit(&argc, argv);          // Initialize GLUT
