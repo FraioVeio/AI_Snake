@@ -4,6 +4,10 @@
 #include <time.h>
 
 void Snake::step(int direction) {
+    hunger --;
+    if(hunger < 0)
+        alive = false;
+    
     if(alive) {
         int lastx = snakex[snakeDir-1];
         int lasty = snakey[snakeDir-1];
@@ -66,6 +70,7 @@ void Snake::step(int direction) {
             snakey[snakeSize] = lasty;
             
             snakeSize ++;
+            hunger = maxHunger;
 
             generateCookie();
         }
@@ -133,7 +138,7 @@ void Snake::getCookieCoordinate(int *x, int *y) {
     *y = cookiey;
 }
 
-Snake::Snake(int size) {
+Snake::Snake(int size, int maxHunger) {
     gridSize = size;
 
     snakeMaxSize = gridSize * gridSize;
@@ -158,6 +163,9 @@ Snake::Snake(int size) {
 
     srand (time(NULL));
     generateCookie();
+
+    hunger = maxHunger;
+    this->maxHunger = maxHunger;
 }
 
 Snake::~Snake() {

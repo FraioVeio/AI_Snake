@@ -2,13 +2,26 @@
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
+#include <string.h>
 
 #include "Snake.hpp"
-#include "Brain.hpp"
+#include "Evolution.hpp"
 
-Snake *s;
-int gridSize = 20;
+
+/* AI parameters */
+int population = 1000;
+int podio = 50;
+int hiddenLayers = 1;
+int neuronsPerLayer = 50;
+float mutationFactor = 0.1;
+/***/
+
+Snake *gsnake;
+int gridSize = 10;
+int maxHunger = 30;
 int refreshMills = 30; // refresh interval in milliseconds
+bool displayBest = true;
+int gameMillis = 100;
 int snakeDir = DIR_RIGHT;
 
 /* Initialize OpenGL Graphics */
@@ -57,13 +70,13 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT);   // Clear the color buffer with current clearing color
     int sx, sy;
 
-    if(s != NULL) {
-        for(int i=0;i<s->getSnakeSize();i++) {
-            s->getSnakeCoordinate(i, &sx, &sy);
+    if(gsnake != NULL) {
+        for(int i=0;i<gsnake->getSnakeSize();i++) {
+            gsnake->getSnakeCoordinate(i, &sx, &sy);
             drawSquare(gridSize, sx, sy, 1, 0, 0);
         }
 
-        s->getCookieCoordinate(&sx, &sy);
+        gsnake->getCookieCoordinate(&sx, &sy);
         drawSquare(gridSize, sx, sy, 0, 1, 1);
     }
     drawGrid(gridSize);
@@ -100,45 +113,108 @@ void Timer(int value) {
 
 /* Callback handler for normal-key event */
 void keyboard(unsigned char key, int x, int y) {
-    
+    if(key == 'd')
+        displayBest = !displayBest;
 }
  
 /* Callback handler for special-key event */
 void specialKeys(int key, int x, int y) {
-    if(key == 100 && s->getDirection() != DIR_RIGHT) {
+    /* Snake movement */
+    /*
+    if(key == 100 && gsnake->getDirection() != DIR_RIGHT) {
         snakeDir = DIR_LEFT;
     }
-    if(key == 101 && s->getDirection() != DIR_DOWN) {
+    if(key == 101 && gsnake->getDirection() != DIR_DOWN) {
         snakeDir = DIR_UP;
     }
-    if(key == 102 && s->getDirection() != DIR_LEFT) {
+    if(key == 102 && gsnake->getDirection() != DIR_LEFT) {
         snakeDir = DIR_RIGHT;
     }
-    if(key == 103 && s->getDirection() != DIR_UP) {
+    if(key == 103 && gsnake->getDirection() != DIR_UP) {
         snakeDir = DIR_DOWN;
+    }*/
+}
+
+float brainPlay(Brain *b, int us, bool graphics) {
+    Snake *s = new Snake(gridSize, maxHunger);
+    if(graphics)
+        gsnake = s;
+    s->setPacman(true);
+
+    float inputs[gridSize*gridSize+1], outputs[4];
+    float grid[gridSize][gridSize];
+
+    while(s->isAlive()) {
+        memset(grid, 0, gridSize*gridSize*sizeof(float));
+        for(int i=1;i<s->snakeSize;i++) {   // Corpo -0.5
+            grid[s->snakex[i]][s->snakey[i]] = -0.5;
+        }
+        grid[s->snakex[0]][s->snakey[0]] = -1;  // Testa
+        grid[s->cookiex][s->cookiey] = 1;
+        memcpy(inputs, grid, gridSize*gridSize*sizeof(float));
+        inputs[gridSize*gridSize] = s->getDirection()/2.0-1;
+
+        b->compute(inputs, outputs);
+       
+        if(outputs[0] > outputs[1] && outputs[0] > outputs[2] && outputs[0] > outputs[3]) { // DOWN
+            if(s->getDirection() != DIR_UP)
+                s->step(DIR_DOWN);
+            else
+                s->step(DIR_SAME);
+        }else if(outputs[1] > outputs[2] && outputs[1] > outputs[3] && outputs[1] > outputs[0]) { // LEFT
+            if(s->getDirection() != DIR_RIGHT)
+                s->step(DIR_LEFT);
+            else
+                s->step(DIR_SAME);
+        }else if(outputs[2] > outputs[3] && outputs[2] > outputs[0] && outputs[2] > outputs[1]) { // RIGHT
+            if(s->getDirection() != DIR_LEFT)
+                s->step(DIR_RIGHT);
+            else
+                s->step(DIR_SAME);
+        }else if(outputs[3] > outputs[0] && outputs[3] > outputs[1] && outputs[3] > outputs[2]) { // UP
+            if(s->getDirection() != DIR_DOWN)
+                s->step(DIR_UP);
+            else
+                s->step(DIR_SAME);
+        }else {
+            s->step(DIR_SAME);
+            printf("Occhio net strana\n");
+        }
+        
+        if(us != 0)
+            usleep(us*1000);
     }
+
+    float fitness = s->snakeSize-2;
+
+
+    return fitness;
 }
 
 void mainThread() {
+    Evolution *evo = new Evolution(population, gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
+    int generation = 1;
     while(1) {
-        while(s->isAlive()) {
-            s->step(snakeDir);
+        for(int bi=0;bi<population;bi++) {
+            Brain *b = evo->getBrain(bi);
 
-            usleep(200000);
+            float fitness = brainPlay(b, 0, false);
+
+            evo->setResult(bi, fitness);
         }
-        s = new Snake(gridSize);
-        snakeDir = s->getDirection();
+        printf("Generation %i: %f\n", generation, evo->results[evo->getBestBrainIndex()]);
+        if(displayBest)
+            brainPlay(evo->getBrain(evo->getBestBrainIndex()), 100, true);
+
+
+        evo->evolve(podio, mutationFactor);
+        generation ++;
     }
 }
 
 /* Main function: GLUT runs as a console application starting at main() */
 int main(int argc, char** argv) {
-    Brain *b = new Brain(100, 4, 2, 50);
-    genome_t genome = b->getGenome();
-    double in[100], out[4];
-    b->compute(in, out);
-
-    /*
+    
     glutInit(&argc, argv);          // Initialize GLUT
     glutInitWindowSize(640, 480);   // Set the window's initial width & height - non-square
     glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
@@ -153,12 +229,14 @@ int main(int argc, char** argv) {
     glutTimerFunc(0, Timer, 0);     // First timer call immediately
     initGL();                       // Our own OpenGL initialization
 
-
-    s = new Snake(gridSize);
+    /*
+    gsnake = new Snake(gridSize);
+    gsnake->setPacman(true);
+    */
     std::thread thr(mainThread);
 
 
     glutMainLoop();                 // Enter the infinite event-processing loop
-    */
+    
     return 0;
 }

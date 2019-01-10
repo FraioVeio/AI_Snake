@@ -3,6 +3,6 @@ project(AISnake)
 
 set (CMAKE_CXX_STANDARD 11)
 
-add_executable(AISnake main.cpp Snake.hpp Snake.cpp Brain.hpp Brain.cpp)
+add_executable(AISnake main.cpp Snake.hpp Snake.cpp Brain.hpp Brain.cpp Evolution.hpp Evolution.cpp)
 
 target_link_libraries (AISnake glut GLU GL m pthread)
