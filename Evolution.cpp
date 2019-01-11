@@ -44,7 +44,6 @@ float Evolution::evolve(int podio, float sumFactor, float mulFactor, float repla
             
             if(rf < sumFactor) {
                 genome[y] += ((float)random()/(float)RAND_MAX)*2-1;
-                
             }
 
             /* mul mutation */

@@ -16,14 +16,14 @@ int randomindex;
 
 
 /* AI parameters */
-int population = 100;
-int podio = 4;
+int population = 500;
+int podio = 5;
 int hiddenLayers = 1;   // Quando metti più di 2 da segmentation fault :(
 int neuronsPerLayer = 100;
-float sumFactor = 0.05;
-float sumsize = 0.3;
-float replaceFactor = 0.01;
-float mulFactor = 0.05;
+float sumFactor = 0/*0.03*/;
+float sumsize = 0.2;
+float replaceFactor = 0/*.0075*/;
+float mulFactor = 0/*.03*/;
 float mulsize = 0.2;
 /***/
 
@@ -33,7 +33,7 @@ int maxHunger = 100;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
 bool pacman = false;
-int gameMillis = 100;
+int gameMillis = 50;
 int snakeDir = DIR_RIGHT;
 
 
@@ -251,6 +251,21 @@ void mainThread() {
             mean += evo->results[i]/population;
         }
         bestGenome = evo->getBrain(evo->getBestBrainIndex())->getGenome();
+
+        FILE *f = fopen("lastgen.gen", "w+");
+        int gs = evo->getBrain(0)->getGenome().size;
+        fwrite(&gs, sizeof(int), 1, f);
+        fwrite(&population, sizeof(int), 1, f);
+
+        for(int i=0;i<population;i++) {
+            genome_t g = evo->getBrain(i)->getGenome();
+            fwrite(g.genome, 1, g.size, f);
+        }
+
+        fwrite(randomlist, sizeof(int), RANDOMLIST_SIZE, f);
+
+        fclose(f);
+
         float podfit = evo->evolve(podio, sumFactor, mulFactor, replaceFactor, sumsize, mulsize);
         printf("Generation %i: %f, %.10f, %.10f\n", generation, evo->results[evo->getBestBrainIndex()], podfit, mean);
         generation ++;
