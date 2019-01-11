@@ -17,28 +17,30 @@ int randomindex;
 
 /* AI parameters */
 int population = 1000;
-int podio = 15;
+int podio = 100;
 int hiddenLayers = 1;
 int neuronsPerLayer = 100;
 float sumFactor = 0.02;
-float sumsize = 0.4;
-float replaceFactor = 0.0001;
+float sumsize = 0.3;
+float replaceFactor = 0.00015;
 float mulFactor = 0.02;
-float mulsize = 0.1;
+float mulsize = 0.2;
 /***/
 
 Snake *gsnake;
-int gridSize = 10;
-int maxHunger = 100;
+int gridSize = 15;
+int maxHunger = 50;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
 bool pacman = false;
-int gameMillis = 50;
+int gameMillis = 200;
 int snakeDir = DIR_RIGHT;
 
 
 Evolution *evo;
 genome_t bestGenome;
+bool newrand = false;
+bool permrand = false;
 
 /* Initialize OpenGL Graphics */
 void initGL() {
@@ -127,6 +129,16 @@ void reshape(GLsizei width, GLsizei height) {  // GLsizei for non-negative integ
     }
 }
 
+void generateRandomList() {
+    if(randomlist == NULL)
+        randomlist = (int*) calloc(RANDOMLIST_SIZE, sizeof(int));
+    randomindex = 0;
+    srand (time(NULL));
+    for(int i=0;i<RANDOMLIST_SIZE;i++) {
+        randomlist[i] = random()%gridSize;
+    }
+}
+
 void Timer(int value) {
    glutPostRedisplay();      // Post re-paint request to activate display()
    glutTimerFunc(refreshMills, Timer, 0); // next Timer call milliseconds later
@@ -140,6 +152,20 @@ void keyboard(unsigned char key, int x, int y) {
             printf("Display best on\n");
         else
             printf("Display best off\n");
+    }
+
+    if(key == 'r') {
+        printf("Next generation will have new random list\n");
+        newrand = true;
+    }
+
+    if(key == 'R') {
+        permrand = !permrand;
+        if(permrand)
+            printf("Dynamic list enabled\n");
+        else
+            printf("Dynamic list disabled\n");
+        newrand = true;
     }
 }
  
@@ -272,6 +298,11 @@ void mainThread() {
         float podfit = evo->evolve(podio, sumFactor, mulFactor, replaceFactor, sumsize, mulsize);
         printf("Generation %i: %f, %.10f, %.10f\n", generation, evo->results[evo->getBestBrainIndex()], podfit, mean);
         generation ++;
+
+        if(newrand || permrand) {
+            generateRandomList();
+            newrand = false;
+        }
     }
 }
 
@@ -280,7 +311,7 @@ void gameThread() {
         if(bestGenome.genome != NULL) {
             Brain *b = new Brain(gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
             b->setGenome(bestGenome);
-            brainPlay(b, 100, true);
+            brainPlay(b, gameMillis, true);
             delete b;
         }
     }
@@ -288,18 +319,12 @@ void gameThread() {
 
 /* Main function: GLUT runs as a console application starting at main() */
 int main(int argc, char** argv) {
-    
-    randomlist = (int*) calloc(RANDOMLIST_SIZE, sizeof(int));
-    randomindex = 0;
-    srand (time(NULL));
-    for(int i=0;i<RANDOMLIST_SIZE;i++) {
-        randomlist[i] = random()%gridSize;
-    }
+    generateRandomList();
 
     evo = new Evolution(population, gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
 
     glutInit(&argc, argv);          // Initialize GLUT
-    glutInitWindowSize(640, 480);   // Set the window's initial width & height - non-square
+    glutInitWindowSize(800, 800);   // Set the window's initial width & height - non-square
     glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
     glutCreateWindow("AI Snake");  // Create window with the given title
     glutDisplayFunc(display);       // Register callback handler for window re-paint event
