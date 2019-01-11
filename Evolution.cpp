@@ -65,6 +65,10 @@ float Evolution::evolve(int podio, float sumFactor, float mulFactor, float repla
         brains[i]->setGenome(gs);
     }
 
+    for(int i=0;i<podio;i++) {
+        free(genomes[i]);
+    }
+
     return fitmedio;
 }
 
@@ -92,8 +96,12 @@ void Evolution::setResult(int index, float result) {
 
 Evolution::Evolution(int population, int inputs, int outputs, int hiddenLayers, int neuronsPerLayer) {
     this->population = population;
-    Brain *bt = new Brain(inputs, outputs, hiddenLayers, neuronsPerLayer);
-    genomeSize = bt->getGenome().size/sizeof(float);
+    {
+        Brain *bt = new Brain(inputs, outputs, hiddenLayers, neuronsPerLayer);
+        genome_t gs = bt->getGenome();
+        free(gs.genome);
+        genomeSize = gs.size/sizeof(float);
+    }
     
     brains = (Brain**) calloc(population, sizeof(Brain*));
 
@@ -117,6 +125,9 @@ Evolution::Evolution(int population, int inputs, int outputs, int hiddenLayers, 
 }
 
 Evolution::~Evolution() {
+    for(int i=0;i<population;i++) {
+        delete brains[i];
+    }
     free(brains);
     free(results);
 }

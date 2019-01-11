@@ -231,6 +231,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
     float gridDiag = sqrt(gridSize*gridSize + gridSize*gridSize);
     float fitness = s->snakeSize-2 + (gridDiag-currentmindist)/gridDiag;
 
+    delete s;
 
     return fitness;
 }
@@ -250,16 +251,18 @@ void mainThread() {
         for(int i=0;i<population;i++) {
             mean += evo->results[i]/population;
         }
+        free(bestGenome.genome);
         bestGenome = evo->getBrain(evo->getBestBrainIndex())->getGenome();
 
         FILE *f = fopen("lastgen.gen", "w+");
-        int gs = evo->getBrain(0)->getGenome().size;
+        int gs = bestGenome.size;
         fwrite(&gs, sizeof(int), 1, f);
         fwrite(&population, sizeof(int), 1, f);
 
         for(int i=0;i<population;i++) {
             genome_t g = evo->getBrain(i)->getGenome();
             fwrite(g.genome, 1, g.size, f);
+            free(g.genome);
         }
 
         fwrite(randomlist, sizeof(int), RANDOMLIST_SIZE, f);
@@ -278,6 +281,7 @@ void gameThread() {
             Brain *b = new Brain(gridSize*gridSize+1, 4, hiddenLayers, neuronsPerLayer);
             b->setGenome(bestGenome);
             brainPlay(b, 100, true);
+            delete b;
         }
     }
 }
