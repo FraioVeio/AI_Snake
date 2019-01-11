@@ -16,15 +16,15 @@ int randomindex;
 
 
 /* AI parameters */
-int population = 500;
-int podio = 5;
-int hiddenLayers = 1;   // Quando metti più di 2 da segmentation fault :(
+int population = 1000;
+int podio = 15;
+int hiddenLayers = 1;
 int neuronsPerLayer = 100;
-float sumFactor = 0/*0.03*/;
-float sumsize = 0.2;
-float replaceFactor = 0/*.0075*/;
-float mulFactor = 0/*.03*/;
-float mulsize = 0.2;
+float sumFactor = 0.02;
+float sumsize = 0.4;
+float replaceFactor = 0.0001;
+float mulFactor = 0.02;
+float mulsize = 0.1;
 /***/
 
 Snake *gsnake;

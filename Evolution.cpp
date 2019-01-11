@@ -55,7 +55,7 @@ float Evolution::evolve(int podio, float sumFactor, float mulFactor, float repla
             /* replace mutation */
             rf = (random()/(float)RAND_MAX);
             if(rf < replaceFactor) {
-                genome[y] += ((float)random()/(float)RAND_MAX)*sumsize*2-sumsize;
+                genome[y] = ((float)random()/(float)RAND_MAX)*2-1;
             }
         }
         podiocount ++;
@@ -92,8 +92,9 @@ void Evolution::setResult(int index, float result) {
 
 Evolution::Evolution(int population, int inputs, int outputs, int hiddenLayers, int neuronsPerLayer) {
     this->population = population;
-    genomeSize = inputs*neuronsPerLayer + outputs*neuronsPerLayer + (hiddenLayers-1) * neuronsPerLayer * neuronsPerLayer;
-
+    Brain *bt = new Brain(inputs, outputs, hiddenLayers, neuronsPerLayer);
+    genomeSize = bt->getGenome().size/sizeof(float);
+    
     brains = (Brain**) calloc(population, sizeof(Brain*));
 
     srand (time(NULL));
