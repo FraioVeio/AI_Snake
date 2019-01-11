@@ -84,15 +84,15 @@ void Snake::step(int direction) {
 }
 
 void Snake::generateCookie() {
-    /*
+    
     bool ok = false;
     int cx;
     int cy;
     while(!ok) {
         ok = true;
         
-        cx = random()%gridSize;
-        cy = random()%gridSize;
+        cx = getRandom();
+        cy = getRandom();
         
         for(int i=0;i<snakeSize;i++) {
             if(cx == snakex[i] && cy == snakey[i])
@@ -101,10 +101,7 @@ void Snake::generateCookie() {
     }
 
     cookiex = cx;
-    cookiey = cy;*/
-
-    cookiex = getRandom();
-    cookiey = getRandom();
+    cookiey = cy;
 }
 
 void Snake::setPacman(bool p) {

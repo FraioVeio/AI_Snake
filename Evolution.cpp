@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void Evolution::evolve(int podio, float mutationFactor, float replaceFactor, float mutationsize) {
+float Evolution::evolve(int podio, float sumFactor, float mulFactor, float replaceFactor, float sumsize, float mulsize) {
     int orderi[population];
     for(int i=0;i<population;i++) {
         orderi[i] = i;
@@ -21,38 +21,55 @@ void Evolution::evolve(int podio, float mutationFactor, float replaceFactor, flo
 			}
 		}
 	}
-
+    float fitmedio = 0;
     int podiocount = 0;
     float *genomes[podio];
     for(int i=0;i<podio;i++) {
         genomes[i] = brains[orderi[i]]->getGenome().genome;
+        fitmedio += results[orderi[i]]/podio;
     }
     genome_t gs;
-    gs.genome = genomes[0];
+    // Decommenta e metti i=1 sotto x tenere il migliore immutato
+    /*gs.genome = genomes[0];
     gs.size = genomeSize;
-    brains[0]->setGenome(gs);
+    brains[0]->setGenome(gs);*/
 
-    for(int i=1;i<population;i++) {
+    for(int i=0;i<population;i++) {
         float genome[genomeSize];
         for(int y=0;y<genomeSize;y++) {
-            genome[y] = genomes[podiocount++][y];
-            if(podiocount >= podio)
-                podiocount = 0;
+            genome[y] = genomes[podiocount][y];
+            
             /* +- mutation */
-            float rf = ((float)random()/(float)RAND_MAX)*2*mutationsize-mutationsize;
-            if(rf < mutationFactor) {
-                genome[y] += ((float)random()/(float)RAND_MAX)*100-50;
+            float rf = ((float)random()/(float)RAND_MAX);
+            
+            if(rf < sumFactor) {
+                genome[y] += ((float)random()/(float)RAND_MAX)*2-1;
+            }
+
+            /* mul mutation */
+            rf = (random()/(float)RAND_MAX);
+            if(rf < mulFactor) {
+                genome[y] *= 1+((float)random()/(float)RAND_MAX)*mulsize*2-mulsize;
             }
 
             /* replace mutation */
-            rf = ((float)random()/(float)RAND_MAX)*2*mutationsize-mutationsize;
+            rf = (random()/(float)RAND_MAX);
             if(rf < replaceFactor) {
-                genome[y] += ((float)random()/(float)RAND_MAX)*100-50;
+                genome[y] = ((float)random()/(float)RAND_MAX)*2-1;
             }
         }
+        podiocount ++;
+        if(podiocount >= podio)
+                podiocount = 0;
         gs.genome = genome;
         brains[i]->setGenome(gs);
     }
+
+    for(int i=0;i<podio;i++) {
+        free(genomes[i]);
+    }
+
+    return fitmedio;
 }
 
 Brain *Evolution::getBrain(int index) {
@@ -79,8 +96,13 @@ void Evolution::setResult(int index, float result) {
 
 Evolution::Evolution(int population, int inputs, int outputs, int hiddenLayers, int neuronsPerLayer) {
     this->population = population;
-    genomeSize = inputs*neuronsPerLayer + outputs*neuronsPerLayer + (hiddenLayers-1) * neuronsPerLayer * neuronsPerLayer;
-
+    {
+        Brain *bt = new Brain(inputs, outputs, hiddenLayers, neuronsPerLayer);
+        genome_t gs = bt->getGenome();
+        free(gs.genome);
+        genomeSize = gs.size/sizeof(float);
+    }
+    
     brains = (Brain**) calloc(population, sizeof(Brain*));
 
     srand (time(NULL));
@@ -90,7 +112,7 @@ Evolution::Evolution(int population, int inputs, int outputs, int hiddenLayers, 
     for(int i=0;i<population;i++) {
         brains[i] = new Brain(inputs, outputs, hiddenLayers, neuronsPerLayer);
         for(int y=0;y<genomeSize;y++) {
-            genome[y] = ((float)random()/(float)RAND_MAX)*100-50;
+            genome[y] = ((float)random()/(float)RAND_MAX)*2-1;
         }
         genome_t gs;
         gs.genome = genome;
@@ -103,6 +125,9 @@ Evolution::Evolution(int population, int inputs, int outputs, int hiddenLayers, 
 }
 
 Evolution::~Evolution() {
+    for(int i=0;i<population;i++) {
+        delete brains[i];
+    }
     free(brains);
     free(results);
 }
