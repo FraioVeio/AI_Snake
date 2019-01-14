@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
+#include <limits>
 
 #include "Snake.hpp"
 #include "Evolution.hpp"
@@ -30,7 +31,7 @@ int threads = 8;
 /***/
 
 Snake *gsnake;
-int gridSize = 5;
+int gridSize = 10;
 int maxHunger = 50;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
@@ -202,7 +203,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
     float grid[gridSize][gridSize];
     int stepcount = 0;
 
-    float currentmindist = MAXFLOAT;
+    float currentmindist = std::numeric_limits<float>::max();
     int sizeold = 2;
 
     while(s->isAlive()) {
@@ -220,7 +221,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
 
         if(s->getSnakeSize() > sizeold) {
             sizeold = s->getSnakeSize();
-            currentmindist = MAXFLOAT;
+            currentmindist = std::numeric_limits<float>::max();
         }
 
         float cdist = sqrt((s->cookiex - s->snakex[0])*(s->cookiex - s->snakex[0]) + (s->cookiey - s->snakey[0])*(s->cookiey - s->snakey[0]));
