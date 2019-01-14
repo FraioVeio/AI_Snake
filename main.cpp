@@ -19,16 +19,18 @@ int randomindex;
 int population = 1000;
 int podio = 100;
 int hiddenLayers = 1;
-int neuronsPerLayer = 100;
+int neuronsPerLayer = 12;
 float sumFactor = 0.02;
 float sumsize = 0.3;
 float replaceFactor = 0.00015;
 float mulFactor = 0.02;
 float mulsize = 0.2;
+
+int threads = 8;
 /***/
 
 Snake *gsnake;
-int gridSize = 15;
+int gridSize = 5;
 int maxHunger = 50;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
@@ -262,15 +264,34 @@ float brainPlay(Brain *b, int us, bool graphics) {
     return fitness;
 }
 
+void evoThread(Evolution *evo, int bi) {
+    Brain *b = evo->getBrain(bi);
+
+    float fitness = brainPlay(b, 0, false);
+
+    evo->setResult(bi, fitness);
+}
+
 void mainThread() {
     int generation = 1;
+    std::thread **thr = (std::thread**) calloc(threads, sizeof(std::thread*));
+
     while(1) {
         for(int bi=0;bi<population;bi++) {
-            Brain *b = evo->getBrain(bi);
-
-            float fitness = brainPlay(b, 0, false);
-
-            evo->setResult(bi, fitness);
+            for(int i=0;i<threads;i++) {
+                if(thr[i] == NULL) {
+                    thr[i] = new std::thread(*evoThread, evo, bi);
+                } else if(!thr[i]->joinable()) {
+                    delete thr[i];
+                    thr[i] = new std::thread(*evoThread, evo, bi);
+                }
+            }
+        }
+        for(int i=0;i<threads;i++) {
+            if(thr[i] != NULL && thr[i]->joinable()) {
+                thr[i]->join();
+                //delete thr[i];  // Capisci perchè non va questa linea
+            }
         }
 
         float mean = 0;
