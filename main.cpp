@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
+#include <limits>
 
 #include "Snake.hpp"
 #include "Evolution.hpp"
@@ -19,16 +20,18 @@ int randomindex;
 int population = 1000;
 int podio = 100;
 int hiddenLayers = 1;
-int neuronsPerLayer = 100;
+int neuronsPerLayer = 12;
 float sumFactor = 0.02;
 float sumsize = 0.3;
 float replaceFactor = 0.00015;
 float mulFactor = 0.02;
 float mulsize = 0.2;
+
+int threads = 8;
 /***/
 
 Snake *gsnake;
-int gridSize = 15;
+int gridSize = 10;
 int maxHunger = 50;
 int refreshMills = 30; // refresh interval in milliseconds
 bool displayBest = false;
@@ -41,6 +44,9 @@ Evolution *evo;
 genome_t bestGenome;
 bool newrand = false;
 bool permrand = false;
+
+std::thread **thr;
+bool *thr_done;
 
 /* Initialize OpenGL Graphics */
 void initGL() {
@@ -197,7 +203,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
     float grid[gridSize][gridSize];
     int stepcount = 0;
 
-    float currentmindist = MAXFLOAT;
+    float currentmindist = std::numeric_limits<float>::max();
     int sizeold = 2;
 
     while(s->isAlive()) {
@@ -215,7 +221,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
 
         if(s->getSnakeSize() > sizeold) {
             sizeold = s->getSnakeSize();
-            currentmindist = MAXFLOAT;
+            currentmindist = std::numeric_limits<float>::max();
         }
 
         float cdist = sqrt((s->cookiex - s->snakex[0])*(s->cookiex - s->snakex[0]) + (s->cookiey - s->snakey[0])*(s->cookiey - s->snakey[0]));
@@ -262,16 +268,49 @@ float brainPlay(Brain *b, int us, bool graphics) {
     return fitness;
 }
 
+void evoThread(Evolution *evo, int bi, int ti) {
+    Brain *b = evo->getBrain(bi);
+
+    float fitness = brainPlay(b, 0, false);
+
+    evo->setResult(bi, fitness);
+    thr_done[ti] = true;
+}
+
 void mainThread() {
     int generation = 1;
+    bool ok;
+
     while(1) {
         for(int bi=0;bi<population;bi++) {
-            Brain *b = evo->getBrain(bi);
-
-            float fitness = brainPlay(b, 0, false);
-
-            evo->setResult(bi, fitness);
+            ok = false;
+            while(!ok) {
+                for(int i=0;i<threads;i++) {
+                    if(thr[i] == NULL) {
+                        thr_done[i] = false;
+                        thr[i] = new std::thread(evoThread, evo, bi, i);
+                        ok = true;
+                        break;
+                    } else if(thr_done[i]) {
+                        thr[i]->join();
+                        delete thr[i];
+                        thr_done[i] = false;
+                        thr[i] = new std::thread(evoThread, evo, bi, i);
+                        ok = true;
+                        break;
+                    }
+                }
+            }
         }
+        for(int i=0;i<threads;i++) {
+            if(thr[i] != NULL && !thr_done[i]) {
+                if(thr[i] != NULL)
+                    thr[i]->join();
+                delete thr[i];
+                thr[i] = NULL;
+            }
+        }
+        
 
         float mean = 0;
         for(int i=0;i<population;i++) {
@@ -341,6 +380,14 @@ int main(int argc, char** argv) {
     gsnake = new Snake(gridSize);
     gsnake->setPacman(true);
     */
+
+
+    thr = (std::thread**) calloc(threads, sizeof(std::thread*));
+    thr_done = (bool*) calloc(threads, sizeof(bool));
+    for(int i=0;i<threads;i++) {
+        thr_done[i] = false;
+    }
+
     std::thread thr(mainThread);
     std::thread thr2(gameThread);
     
