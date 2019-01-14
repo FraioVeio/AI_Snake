@@ -44,6 +44,9 @@ genome_t bestGenome;
 bool newrand = false;
 bool permrand = false;
 
+std::thread **thr;
+bool *thr_done;
+
 /* Initialize OpenGL Graphics */
 void initGL() {
    // Set "clearing" or background color
@@ -264,35 +267,49 @@ float brainPlay(Brain *b, int us, bool graphics) {
     return fitness;
 }
 
-void evoThread(Evolution *evo, int bi) {
+void evoThread(Evolution *evo, int bi, int ti) {
     Brain *b = evo->getBrain(bi);
 
     float fitness = brainPlay(b, 0, false);
 
     evo->setResult(bi, fitness);
+    thr_done[ti] = true;
 }
 
 void mainThread() {
     int generation = 1;
-    std::thread **thr = (std::thread**) calloc(threads, sizeof(std::thread*));
+    bool ok;
 
     while(1) {
         for(int bi=0;bi<population;bi++) {
-            for(int i=0;i<threads;i++) {
-                if(thr[i] == NULL) {
-                    thr[i] = new std::thread(*evoThread, evo, bi);
-                } else if(!thr[i]->joinable()) {
-                    delete thr[i];
-                    thr[i] = new std::thread(*evoThread, evo, bi);
+            ok = false;
+            while(!ok) {
+                for(int i=0;i<threads;i++) {
+                    if(thr[i] == NULL) {
+                        thr_done[i] = false;
+                        thr[i] = new std::thread(evoThread, evo, bi, i);
+                        ok = true;
+                        break;
+                    } else if(thr_done[i]) {
+                        thr[i]->join();
+                        delete thr[i];
+                        thr_done[i] = false;
+                        thr[i] = new std::thread(evoThread, evo, bi, i);
+                        ok = true;
+                        break;
+                    }
                 }
             }
         }
         for(int i=0;i<threads;i++) {
-            if(thr[i] != NULL && thr[i]->joinable()) {
-                thr[i]->join();
-                //delete thr[i];  // Capisci perchè non va questa linea
+            if(thr[i] != NULL && !thr_done[i]) {
+                if(thr[i] != NULL)
+                    thr[i]->join();
+                delete thr[i];
+                thr[i] = NULL;
             }
         }
+        
 
         float mean = 0;
         for(int i=0;i<population;i++) {
@@ -362,6 +379,14 @@ int main(int argc, char** argv) {
     gsnake = new Snake(gridSize);
     gsnake->setPacman(true);
     */
+
+
+    thr = (std::thread**) calloc(threads, sizeof(std::thread*));
+    thr_done = (bool*) calloc(threads, sizeof(bool));
+    for(int i=0;i<threads;i++) {
+        thr_done[i] = false;
+    }
+
     std::thread thr(mainThread);
     std::thread thr2(gameThread);
     
