@@ -2,7 +2,7 @@
 # AI Snake
 
 ##How to build
-Requirements: `cmake` and `make`
+Requirements: `cmake`, `make` and `openGL`
 
 Build command:
 ```

@@ -222,6 +222,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
         if(s->getSnakeSize() > sizeold) {
             sizeold = s->getSnakeSize();
             currentmindist = std::numeric_limits<float>::max();
+            stepcount = 0;
         }
 
         float cdist = sqrt((s->cookiex - s->snakex[0])*(s->cookiex - s->snakex[0]) + (s->cookiey - s->snakey[0])*(s->cookiey - s->snakey[0]));
@@ -261,7 +262,7 @@ float brainPlay(Brain *b, int us, bool graphics) {
     }
 
     float gridDiag = sqrt(gridSize*gridSize + gridSize*gridSize);
-    float fitness = s->snakeSize-2 + (gridDiag-currentmindist)/gridDiag;
+    float fitness = s->snakeSize-2 + (gridDiag-currentmindist)/gridDiag + (1-stepcount/gridSize/3);
 
     delete s;
 
